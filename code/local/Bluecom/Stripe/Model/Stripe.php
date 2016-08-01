@@ -7,22 +7,21 @@ class Bluecom_Stripe_Model_Stripe extends Mage_Payment_Model_Method_Cc
 	protected $_formBlockType = 'stripe/form_payment';
 	protected $_infoBlockType = 'stripe/info_payment';
 
-	protected $_canAuthorize            = true;
-	protected $_canCapture              = true;
-	protected $_canRefund               = false;
-
+	protected $_canAuthorize	= true;
+	protected $_canCapture		= true;
+	// protected $_canRefund		= false;
 
 	protected $_canSaveCc = false; //if made try, the actual credit card number and cvv code are stored in database.
 
 	public function process($data){
 
 		if($data['cancel'] == 1){
-		 $order->getPayment()
-		 ->setTransactionId(null)
-		 ->setParentTransactionId(time())
-		 ->void();
-		 $message = 'Unable to process Payment';
-		 $order->registerCancellation($message)->save();
+			$order->getPayment()
+				->setTransactionId(null)
+				->setParentTransactionId(time())
+				->void();
+			$message = 'Unable to process Payment';
+			$order->registerCancellation($message)->save();
 		}
 	}
 
@@ -114,7 +113,7 @@ class Bluecom_Stripe_Model_Stripe extends Mage_Payment_Model_Method_Cc
 	public function processBeforeRefund($invoice, $payment){
 		return parent::processBeforeRefund($invoice, $payment);
 	}
-	public function refund(Varien_Object $payment, $amount){
+	/*public function refund(Varien_Object $payment, $amount){
 		$order = $payment->getOrder();
 		$result = $this->callApi($payment,$amount,'refund');
 		if($result === false) {
@@ -124,37 +123,37 @@ class Bluecom_Stripe_Model_Stripe extends Mage_Payment_Model_Method_Cc
 		}
 		return $this;
 
-	}
+	}*/
 	public function processCreditmemo($creditmemo, $payment){
 		return parent::processCreditmemo($creditmemo, $payment);
 	}
 	
 	private function callApi(Varien_Object $payment, $amount,$type){
-			$storeId = 'Store Id'.' '.Mage::app()->getStore()->getId();
-			$order = $payment->getOrder();
-			$types = Mage::getSingleton('payment/config')->getCcTypes();
-			if (isset($types[$payment->getCcType()]))
-			{
-				$type = $types[$payment->getCcType()];
-			}
-			
-			$billingaddress = $order->getBillingAddress();
-			$totals = number_format($amount, 2, '.', '');
-			$orderId = $order->getIncrementId();
-			$currencyDesc = $order->getBaseCurrencyCode();
-			Stripe::setApiKey($this->getConfigData('api_username')); 
-			try 
-				{
-					$createtoken= Stripe_Token::create(array( "card" => array( "number" => $payment->getCcNumber(), "exp_month" => $payment->getCcExpMonth(), "exp_year" => $payment->getCcExpYear(), "cvc" => $payment->getCcCid(),"name"=>$billingaddress->getData('firstname').' '.$billingaddress->getData('lastname'),"address_line1"=>$billingaddress->getData('street'),"address_city"=>$billingaddress->getData('city'),"address_state"=>$billingaddress->getData('region'),"address_zip"=>$billingaddress->getData('postcode'),"address_country"=>$billingaddress->getData('country_id'),"customer"=>Mage::getSingleton('customer/session')->getCustomerId() ) ));
-					$createcharge=Stripe_Charge::create(array( "amount" => $totals*100, "currency" => $currencyDesc, "card" => $createtoken->id,"statement_descriptor"=>$storeId,"description" => sprintf('#%s, %s', $orderId, $order->getCustomerEmail())));
-					return array('status'=>1,'transaction_id' => $createcharge->id,'fraud' => rand(0,1));
-				} 
-			catch (Exception $e) 
-				{
-					$this->debugData($e->getMessage());
-					Mage::throwException(Mage::helper('paygate')->__($e->getMessage()));
-					die;
-				}
+		$storeId = 'Store Id'.' '.Mage::app()->getStore()->getId();
+		$order = $payment->getOrder();
+		$types = Mage::getSingleton('payment/config')->getCcTypes();
+		if (isset($types[$payment->getCcType()]))
+		{
+			$type = $types[$payment->getCcType()];
+		}
+		
+		$billingaddress = $order->getBillingAddress();
+		$totals = number_format($amount, 2, '.', '');
+		$orderId = $order->getIncrementId();
+		$currencyDesc = $order->getBaseCurrencyCode();
+		Stripe::setApiKey($this->getConfigData('api_username')); 
+		try 
+		{
+			$createtoken= Stripe_Token::create(array( "card" => array( "number" => $payment->getCcNumber(), "exp_month" => $payment->getCcExpMonth(), "exp_year" => $payment->getCcExpYear(), "cvc" => $payment->getCcCid(),"name"=>$billingaddress->getData('firstname').' '.$billingaddress->getData('lastname'),"address_line1"=>$billingaddress->getData('street'),"address_city"=>$billingaddress->getData('city'),"address_state"=>$billingaddress->getData('region'),"address_zip"=>$billingaddress->getData('postcode'),"address_country"=>$billingaddress->getData('country_id'),"customer"=>Mage::getSingleton('customer/session')->getCustomerId() ) ));
+			$createcharge=Stripe_Charge::create(array( "amount" => $totals*100, "currency" => $currencyDesc, "card" => $createtoken->id,"statement_descriptor"=>$storeId,"description" => sprintf('#%s, %s', $orderId, $order->getCustomerEmail())));
+			return array('status'=>1,'transaction_id' => $createcharge->id,'fraud' => rand(0,1));
+		} 
+		catch (Exception $e) 
+		{
+			$this->debugData($e->getMessage());
+			Mage::throwException(Mage::helper('paygate')->__($e->getMessage()));
+			die;
+		}
 				
 	}
 }
